@@ -6,17 +6,22 @@
 
 -type iterable(T) ::
           [T]
-       | #{_Key := T}
-       | array:array(T)
        | sets:set(T)
-       | queue:queue(T)
-       | dict:dict(T).
+       | array:array(T)
+       | queue:queue(T).
+       
+-type iterable_map(Key, T) ::
+        #{Key := T}
+       | dict:dict(Key, T).
 
--spec for(Iterable :: iterable(T),
-          Fun      :: fun((T) -> U))
+-spec for(Iterable :: iterable(T) | iterable_map(Key, T),
+          Fun      :: fun((T) -> U) | fun((Key, T) -> U) | fun((ArrayIndex, T) -> U))
       -> iterable(U)
        when T :: term(),
-            U :: term().
+            U :: term(),
+            ArrayIndex :: integer(),
+            Key :: term().
+        
 for(Iterable, Fun) when is_list(Iterable) ->
     lists:map(Fun, Iterable);
 
@@ -41,12 +46,17 @@ for(Iterable, Fun) when is_tuple(Iterable) ->
 for(Iterable, _) ->
     error({unsupported_iterable, Iterable}).
 
--spec for(Iterable :: iterable(T),
+-spec for( Iterable :: iterable(T) | iterable_map(Key, T),
           Acc      :: A,
-          Fun      :: fun((T, A) -> A))
+          Fun      :: fun((T, A) -> A)
+                   | fun((Key, T, A) -> A)
+                   | fun((ArrayIndex, T, A) -> A))
       -> A
-       when T :: term(),
-            A :: term().
+      when ArrayIndex :: integer(),
+           Key :: term(),
+           T :: term(),
+           A :: term().
+
 for(Iterable, Acc, Fun) when is_list(Iterable) ->
     lists:foldl(Fun, Acc, Iterable);
 
@@ -99,14 +109,9 @@ main() ->
 
     OuterList = [1, 2],
     InnerList = [10, 20],
-    Res = iter:for(OuterList, [], 
-            fun(OE, OA) ->
-                Sums = iter:for(InnerList, [], 
-                    fun(IE, IA) ->
-                        [OE + IE | IA]
-                    end),
-                [Sums | OA]
-            end),
-    Res.
+    iter:for(OuterList, [], fun(OE, OA) ->
+        Sums = iter:for(InnerList, [], fun(IE, IA) -> [OE + IE | IA] end),
+        [Sums | OA]
+    end).
 
 

@@ -14,29 +14,18 @@
   - `dict:dict()`
 - Supports both mapping and folding styles.
 
-## API
-
-```erlang
--spec for(Iterable :: iterable(T), Fun :: fun((T) -> U)) -> iterable(U).
-```
-Maps a function over the elements of a supported iterable structure, returning a transformed iterable.
-
-```erlang
--spec for(Iterable :: iterable(T), Acc :: A, Fun :: fun((T, A) -> A)) -> A.
-```
-Folds a function over the elements of a supported iterable, starting from an initial accumulator.
-
 ## Supported iterable(T) Types
 
 ```erlang
 -type iterable(T) ::
           [T]                  %% List
-        | #{_Key := T}         %% Map
-        | array:array(T)       %% Array
         | sets:set(T)          %% Set
-        | queue:queue(T)       %% Queue
-        | dict:dict(T).        %% Dictionary
-        
+        | array:array(T)       %% Array
+        | queue:queue(T).      %% Queue
+       
+-type iterable_map(K, T) ::
+        #{K := T}              %% Map
+       | dict:dict(K, T).      %% Dict        
 ```
 
 ## Examples
@@ -52,18 +41,16 @@ NewSet = iter:for(sets:from_list([1, 2, 3]), fun(X) -> X * 2 end).
 SumMap = iter:for(#{a => 1, b => 2}, 0, fun(_Key, Value, Acc) -> Value + Acc end).
 
 % Map an array
-NewArray = iter:for(array:from_list([1, 2, 3]), fun(X) -> X * 10 end).
+NewArray = iter:for(array:from_list([1, 2, 3]), fun(_Index, X) -> X * 10 end).
 
 % Nested loops: build sums of two lists
 Outer = [1, 2], Inner = [10, 20],
-Res = iter:for(Outer, [],
-        fun(OE, OA) ->
-            Sums = iter:for(Inner, [],
-                fun(IE, IA) ->
-                    [OE + IE | IA]
-                end),
-            [Sums | OA]
-        end).
+Res = iter:for(Outer, [], fun(OE, OA) ->
+          Sums = iter:for(Inner, [], fun(IE, IA) ->
+              [OE + IE | IA]
+          end),
+          [Sums | OA]
+      end).
 ```
 
 ## Error Handling
